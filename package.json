@@ -1,6 +1,6 @@
 {
   "name": "qiniu-upload-plugin-pro",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "将webpack项目打包到七牛",
   "main": "index.js",
   "scripts": {
