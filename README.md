@@ -60,5 +60,6 @@ plugins: [
 ];
 ```
 ## 示例
- Vue cli 3配置
+ Vue cli 3配置  
+
  ![示例](https://ws1.sinaimg.cn/large/a7bfec21gy1g2q7uo84l8j20hc0e9glz.jpg)
