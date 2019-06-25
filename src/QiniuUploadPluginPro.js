@@ -10,7 +10,7 @@ class QiniuUploadPluginPro {
     }
     // 保存用户传参
     this.config = qnConfig;
-    if (!this.config.pathPrefixLimit || this.config.pathPrefixLimit == null || this.config.pathPrefixLimit <= 0) {
+    if (!this.config.pathPrefixLimit || this.config.pathPrefixLimit <= 0) {
       this.config.pathPrefixLimit = 99999999;// 设置默认值
     }
     // 鉴权
@@ -66,7 +66,7 @@ class QiniuUploadPluginPro {
 
   apply(compiler) {
     compiler.hooks.compilation.tap('QiniuUploadPluginPro', compilation => {
-      if (this.config.pathPrefix && this.config.pathPrefix != null && this.config.pathPrefix !== '') {
+      if (this.config.pathPrefix && this.config.pathPrefix !== '') {
         compilation.outputOptions.publicPath = this.config.publicPath + this.config.pathPrefix;
       } else {
         compilation.outputOptions.publicPath = this.config.publicPath;
@@ -94,7 +94,7 @@ class QiniuUploadPluginPro {
     });
   }
 
-  chunk(arr, size) {
+  static chunk(arr, size) {
     let result = [];
     for (let i = 0; i < arr.length; i = i + size) {
       result.push(arr.slice(i, i + size));
@@ -104,7 +104,7 @@ class QiniuUploadPluginPro {
 
   startUpload() {
     let uploadPromise = [];
-    const spinner = ora('开始上传...').start();
+    const spinner = ora('开始上传... \n').start();
     this.waitUploadList.forEach((key) => {
       uploadPromise.push(this.uploadFile(key))
     });
@@ -120,8 +120,8 @@ class QiniuUploadPluginPro {
 
   startChangeMimeType() {
     let mimePromise = [];
-    const spinner = ora('修改MimeType...').start();
-    this.chunk(this.waitChangeMimeTypeList, 100).forEach((ops) => {
+    const spinner = ora('修改MimeType... \n').start();
+    QiniuUploadPluginPro.chunk(this.waitChangeMimeTypeList, 100).forEach((ops) => {
       mimePromise.push(this.changeMimeTypeBatch(ops))
     });
     Promise.all(mimePromise).then(() => {
@@ -148,7 +148,7 @@ class QiniuUploadPluginPro {
   }
 
   getPathPrefixFiles() {
-    const spinner = ora(`获取指定前缀文件列表：${this.config.pathPrefix}`).start();
+    const spinner = ora(`获取指定前缀文件列表：${this.config.pathPrefix} \n`).start();
     let options = {
       limit: this.config.pathPrefixLimit,// 设置一个尽可能大的数，一次加载完所有的前缀文件列表
       prefix: this.config.pathPrefix,
@@ -163,7 +163,7 @@ class QiniuUploadPluginPro {
         //指定options里面的marker为这个值
         let nextMarker = respBody.marker;
         if (nextMarker) {
-          throw '前缀文件列表未加载完全，尝试配置更大的pathPrefixLimit值，默认值为 99999999';
+          throw Error('前缀文件列表未加载完全，尝试配置更大的pathPrefixLimit值，默认值为 99999999');
         }
         let items = respBody.items || [];
         if (!items || items.length === 0) {
@@ -187,8 +187,8 @@ class QiniuUploadPluginPro {
 
   startDelete() {
     let deletePromise = [];
-    const spinner = ora(`开始删除指定前缀文件列表：${this.config.pathPrefix}`).start();
-    this.chunk(this.waitDeleteList, 100).forEach((ops) => {
+    const spinner = ora(`开始删除指定前缀文件列表：${this.config.pathPrefix} \n`).start();
+    QiniuUploadPluginPro.chunk(this.waitDeleteList, 100).forEach((ops) => {
       deletePromise.push(this.deleteBatch(ops));
     });
     Promise.all(deletePromise).then(() => {
@@ -217,7 +217,7 @@ class QiniuUploadPluginPro {
 
   uploadFile(filename, coverUploadToken) {
     let key;
-    if (this.config.pathPrefix && this.config.pathPrefix != null && this.config.pathPrefix !== '') {
+    if (this.config.pathPrefix && this.config.pathPrefix !== '') {
       key = this.config.pathPrefix + filename;
     } else {
       key = filename;
@@ -225,7 +225,7 @@ class QiniuUploadPluginPro {
     const localFile = path.join(this.absolutePath || '', filename);
     return new Promise((resolve, reject) => {
       // 文件上传
-      const spinner = ora(`上传文件：${filename}`).start();
+      const spinner = ora(`上传文件：${filename} \n`).start();
       const uploadToken = coverUploadToken ? coverUploadToken : this.uploadToken;
       this.formUploader.putFile(uploadToken, key, localFile, this.putExtra, (respErr, respBody, respInfo) => {
           if (respErr) {
@@ -235,14 +235,14 @@ class QiniuUploadPluginPro {
             this.waitChangeMimeTypeList.push(
               qiniu.rs.changeMimeOp(this.config.bucket, respBody.key, this.getMimeTypeByKey(respBody.key))
             );
+            spinner.succeed(`文件：${key} 上传成功！`);
             resolve(respInfo);
-            spinner.succeed(`文件：${key}，上传成功！`);
           } else {
             if (this.config.cover && (respInfo.status === 614 || respInfo.statusCode === 614)) {
-              spinner.fail(`文件：${key}，已存在，尝试覆盖上传！`);
+              spinner.fail(`文件：${key} 已存在，尝试覆盖上传！`);
               resolve(this.uploadFile(filename, this.coverUploadFile(filename)));
             } else {
-              spinner.fail(`文件：${key}，上传失败！`);
+              spinner.fail(`文件：${key} 上传失败！`);
               reject(respInfo);
             }
           }
